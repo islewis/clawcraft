@@ -1,10 +1,11 @@
 {
-  "name": "mineflayer-bot",
+  "name": "clawcraft-client",
   "version": "1.0.0",
   "description": "Minecraft bot using Mineflayer",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node bot.js",
+    "build": "pkg . --targets node18-win-x64,node18-macos-x64,node18-macos-arm64,node18-linux-x64 --output clawcraft"
   },
   "keywords": [
     "minecraft",
@@ -13,9 +14,17 @@
   ],
   "author": "",
   "license": "MIT",
+  "pkg": {
+    "scripts": ["bot.js", "helpers/**/*.js"],
+    "targets": ["node18-win-x64", "node18-macos-x64", "node18-macos-arm64", "node18-linux-x64"]
+  },
   "dependencies": {
     "mineflayer": "^4.11.0",
     "mineflayer-pathfinder": "^2.4.5",
     "prismarine-auth": "^2.7.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
   }
 }
+
