@@ -1,0 +1,7 @@
+version: '3'
+
+tasks:
+  join-server:
+    desc: Connect to a Minecraft server and get REPL prompt
+    cmds:
+      - sh scripts/join-server.sh {{.CLI_ARGS}}
