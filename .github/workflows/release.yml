@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.2)'
+        required: true
 
 jobs:
   build:
@@ -59,8 +64,19 @@ jobs:
         with:
           path: artifacts
 
+      - name: Determine release version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
+          tag: ${{ steps.version.outputs.tag }}
           artifacts: "artifacts/*/*"
-          body: "Clawcraft release ${{ github.ref_name }}"
+          body: "Clawcraft release ${{ steps.version.outputs.tag }}"
+          allowUpdates: true
