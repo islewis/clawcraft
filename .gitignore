@@ -9,3 +9,4 @@ package-lock.json
 *.swp
 *.swo
 stop.signal
+.minecraft-auth/
