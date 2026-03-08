@@ -1,37 +1,77 @@
 #!/bin/bash
 set -e
 
-# Check if clawcraft already exists
-if [ -f "./clawcraft" ]; then
-  echo "You're up to date. clawcraft binary already installed."
+# Determine OS and architecture
+OS=$(uname -s)
+ARCH=$(uname -m)
+
+if [ "$OS" = "Darwin" ]; then
+  BINARY=$([ "$ARCH" = "arm64" ] && echo "clawcraft-macos-arm64" || echo "clawcraft-macos")
+elif [ "$OS" = "Linux" ]; then
+  BINARY="clawcraft-linux"
 else
+  BINARY="clawcraft.exe"
+fi
+
+# Get latest version from GitHub
+get_latest_version() {
+  curl -s https://api.github.com/repos/islewis/clawcraft/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | sed 's/^v//'
+}
+
+# Get current installed version
+get_current_version() {
+  if [ -f "./clawcraft" ]; then
+    ./clawcraft version 2>/dev/null || echo "unknown"
+  else
+    echo ""
+  fi
+}
+
+CURRENT=$(get_current_version)
+LATEST=$(get_latest_version)
+
+if [ -z "$CURRENT" ]; then
   echo "Would you like to install the clawcraft binary?"
+  echo "Latest version: v$LATEST"
   echo "Repo: https://github.com/islewis/clawcraft"
   read -p "Install? (y/n) " -n 1 -r
   echo
 
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Skipping binary download."
-  else
-    OS=$(uname -s)
-    ARCH=$(uname -m)
-
-    if [ "$OS" = "Darwin" ]; then
-      BINARY=$([ "$ARCH" = "arm64" ] && echo "clawcraft-macos-arm64" || echo "clawcraft-macos")
-    elif [ "$OS" = "Linux" ]; then
-      BINARY="clawcraft-linux"
-    else
-      BINARY="clawcraft.exe"
-    fi
-
-    echo "Downloading clawcraft ($BINARY)..."
-    URL=$(curl -s https://api.github.com/repos/islewis/clawcraft/releases/latest | grep "browser_download_url.*$BINARY" | cut -d'"' -f4)
-
-    curl -L -o clawcraft "$URL"
-    chmod +x clawcraft
-
-    echo "Installed: ./clawcraft"
+    exit 0
   fi
+
+  SHOULD_DOWNLOAD=true
+elif [ "$CURRENT" = "$LATEST" ]; then
+  echo "You're up to date. clawcraft v$CURRENT already installed."
+  exit 0
+else
+  echo "Update available: v$CURRENT → v$LATEST"
+  read -p "Update? (y/n) " -n 1 -r
+  echo
+
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Skipping update."
+    exit 0
+  fi
+
+  SHOULD_DOWNLOAD=true
+fi
+
+if [ "$SHOULD_DOWNLOAD" = true ]; then
+  echo "Downloading clawcraft v$LATEST ($BINARY)..."
+  URL=$(curl -s https://api.github.com/repos/islewis/clawcraft/releases/latest | grep "browser_download_url.*$BINARY" | cut -d'"' -f4)
+
+  if [ -z "$URL" ]; then
+    echo "Error: Could not find download URL for $BINARY"
+    exit 1
+  fi
+
+  curl -L -o clawcraft "$URL"
+  chmod +x clawcraft
+
+  echo "Installed: ./clawcraft v$LATEST"
 fi
 echo ""
 

@@ -1,9 +1,6 @@
-const mineflayer = require('mineflayer')
-const repl = require('repl')
-const Vec3 = require('vec3')
-const { pathfinder, Movements, goals } = require('mineflayer-pathfinder')
-const { Authflow } = require('prismarine-auth')
-const helpers = require('./helpers')
+const https = require('https')
+const pkg = require('./package.json')
+const VERSION = pkg.version
 
 // Parse command line arguments
 function parseArgs() {
@@ -22,27 +19,80 @@ function parseArgs() {
 }
 
 const args = parseArgs()
-const host = args.h || args.host || 'localhost'
-const port = parseInt(args.p || args.port || '25565')
-const username = args.u || args.username || 'Bot'
-const auth = args.a || args.auth || 'microsoft'
+const command = process.argv[2]
 
-console.log('=== Bot Configuration ===')
-console.log(`Host: ${host}`)
-console.log(`Port: ${port}`)
-console.log(`Username: ${username}`)
-console.log(`Auth: ${auth}`)
-console.log('Connecting...\n')
+// Handle CLI commands
+async function handleCliCommands() {
+  if (command === 'version') {
+    console.log(VERSION)
+    process.exit(0)
+  }
 
-const botOptions = {
-  host,
-  port,
-  username,
-  version: '1.21.11'
+  if (command === 'update') {
+    console.log('Checking for updates...')
+    await new Promise((resolve) => {
+      https.get('https://api.github.com/repos/islewis/clawcraft/releases/latest', {
+        headers: { 'User-Agent': 'clawcraft' }
+      }, (res) => {
+        let data = ''
+        res.on('data', chunk => data += chunk)
+        res.on('end', () => {
+          try {
+            const latest = JSON.parse(data)
+            const latestVersion = latest.tag_name.replace(/^v/, '')
+
+            if (latestVersion === VERSION) {
+              console.log(`Already up to date (v${VERSION})`)
+            } else {
+              console.log(`Update available: v${VERSION} → v${latestVersion}`)
+              console.log('Run: ./install.sh')
+            }
+            resolve()
+          } catch (e) {
+            console.error('Failed to check for updates:', e.message)
+            resolve()
+          }
+        })
+      }).on('error', (err) => {
+        console.error('Failed to check for updates:', err.message)
+        resolve()
+      })
+    })
+    process.exit(0)
+  }
 }
 
-// Setup and create bot
+// Check for CLI commands before initializing bot
 ;(async () => {
+  await handleCliCommands()
+
+  // Only load bot dependencies if no CLI command was executed
+  const mineflayer = require('mineflayer')
+  const repl = require('repl')
+  const Vec3 = require('vec3')
+  const { pathfinder, Movements, goals } = require('mineflayer-pathfinder')
+  const { Authflow } = require('prismarine-auth')
+  const helpers = require('./helpers')
+
+  const host = args.h || args.host || 'localhost'
+  const port = parseInt(args.p || args.port || '25565')
+  const username = args.u || args.username || 'Bot'
+  const auth = args.a || args.auth || 'microsoft'
+
+  console.log('=== Bot Configuration ===')
+  console.log(`Host: ${host}`)
+  console.log(`Port: ${port}`)
+  console.log(`Username: ${username}`)
+  console.log(`Auth: ${auth}`)
+  console.log('Connecting...\n')
+
+  const botOptions = {
+    host,
+    port,
+    username,
+    version: '1.21.11'
+  }
+
   // Add auth based on type
   if (auth === 'microsoft') {
     try {
@@ -66,105 +116,104 @@ const botOptions = {
 
   const bot = mineflayer.createBot(botOptions)
 
-bot.loadPlugin(pathfinder)
+  bot.loadPlugin(pathfinder)
 
-bot.on('login', () => {
-  console.log('[LOGIN] Bot logged in successfully')
-})
-
-bot.on('spawn', () => {
-  console.log('[SPAWN] Bot spawned in the world')
-
-  // Set up pathfinder movements
-  const mcData = require('minecraft-data')(bot.version)
-  const defaultMove = new Movements(bot, mcData)
-  bot.pathfinder.setMovements(defaultMove)
-
-  const r = repl.start({
-    prompt: '> ',
-    useColors: true,
-    completer: (line) => {
-      const helperKeys = Object.keys(helpers)
-      const contextKeys = Object.keys(r.context || {})
-      const allSuggestions = [...helperKeys, ...contextKeys, 'bot', 'Vec3', 'goals', 'Movements']
-
-      const lastWord = line.split(/[\s.()[\]{}]/g).pop()
-      if (!lastWord) return [[], line]
-
-      const matches = allSuggestions.filter(s => s.startsWith(lastWord))
-      return [matches.length ? matches : [], line]
-    }
+  bot.on('login', () => {
+    console.log('[LOGIN] Bot logged in successfully')
   })
 
-  r.context.bot = bot
-  r.context.Vec3 = Vec3
-  r.context.goals = goals
-  r.context.Movements = Movements
+  bot.on('spawn', () => {
+    console.log('[SPAWN] Bot spawned in the world')
 
-  // Global stop flag for interrupting operations
-  let stopFlag = false
-  let currentAbortController = null
+    // Set up pathfinder movements
+    const mcData = require('minecraft-data')(bot.version)
+    const defaultMove = new Movements(bot, mcData)
+    bot.pathfinder.setMovements(defaultMove)
 
-  // Stop command
-  r.context.stop = () => {
-    stopFlag = true
-    console.log('Stop requested')
-  }
+    const r = repl.start({
+      prompt: '> ',
+      useColors: true,
+      completer: (line) => {
+        const helperKeys = Object.keys(helpers)
+        const contextKeys = Object.keys(r.context || {})
+        const allSuggestions = [...helperKeys, ...contextKeys, 'bot', 'Vec3', 'goals', 'Movements']
 
-  // Wrapper to add stop support to all helper functions
-  const wrapWithStop = (fn) => {
-    return (...args) => {
-      stopFlag = false
-      const wrappedSignal = {
-        get aborted() {
-          return stopFlag
-        }
+        const lastWord = line.split(/[\s.()[\]{}]/g).pop()
+        if (!lastWord) return [[], line]
+
+        const matches = allSuggestions.filter(s => s.startsWith(lastWord))
+        return [matches.length ? matches : [], line]
       }
-      // If first arg is an object, pass it directly; otherwise create object from args
-      const params = args.length === 1 && typeof args[0] === 'object' && !Array.isArray(args[0])
-        ? args[0]
-        : { _args: args }
-      return fn(bot, params, wrappedSignal)
-    }
-  }
+    })
 
-  // Add helpers to context with interrupt support
-  Object.entries(helpers).forEach(([name, fn]) => {
-    r.context[name] = wrapWithStop(fn)
+    r.context.bot = bot
+    r.context.Vec3 = Vec3
+    r.context.goals = goals
+    r.context.Movements = Movements
+
+    // Global stop flag for interrupting operations
+    let stopFlag = false
+    let currentAbortController = null
+
+    // Stop command
+    r.context.stop = () => {
+      stopFlag = true
+      console.log('Stop requested')
+    }
+
+    // Wrapper to add stop support to all helper functions
+    const wrapWithStop = (fn) => {
+      return (...args) => {
+        stopFlag = false
+        const wrappedSignal = {
+          get aborted() {
+            return stopFlag
+          }
+        }
+        // If first arg is an object, pass it directly; otherwise create object from args
+        const params = args.length === 1 && typeof args[0] === 'object' && !Array.isArray(args[0])
+          ? args[0]
+          : { _args: args }
+        return fn(bot, params, wrappedSignal)
+      }
+    }
+
+    // Add helpers to context with interrupt support
+    Object.entries(helpers).forEach(([name, fn]) => {
+      r.context[name] = wrapWithStop(fn)
+    })
+
+    // Handle Ctrl+C interrupts gracefully at process level
+    process.on('SIGINT', () => {
+      if (currentAbortController && !currentAbortController.signal.aborted) {
+        currentAbortController.abort()
+        currentAbortController = null
+      } else {
+        // Exit if no operation is running
+        process.exit(0)
+      }
+    })
+
+    r.on('exit', () => {
+      bot.quit()
+      process.exit()
+    })
   })
 
-  // Handle Ctrl+C interrupts gracefully at process level
-  process.on('SIGINT', () => {
-    if (currentAbortController && !currentAbortController.signal.aborted) {
-      currentAbortController.abort()
-      currentAbortController = null
-    } else {
-      // Exit if no operation is running
-      process.exit(0)
-    }
+  bot.on('chat', (username, message) => {
+    console.log(`${username}: ${message}`)
   })
 
+  bot.on('error', (err) => {
+    console.error('[ERROR]', err.message || err)
+  })
 
-  r.on('exit', () => {
-    bot.quit()
+  bot.on('end', () => {
+    console.log('[DISCONNECT] Bot disconnected')
     process.exit()
   })
-})
 
-bot.on('chat', (username, message) => {
-  console.log(`${username}: ${message}`)
-})
-
-bot.on('error', (err) => {
-  console.error('[ERROR]', err.message || err)
-})
-
-bot.on('end', () => {
-  console.log('[DISCONNECT] Bot disconnected')
-  process.exit()
-})
-
-bot.on('kicked', (reason) => {
-  console.log('[KICKED]', reason)
-})
+  bot.on('kicked', (reason) => {
+    console.log('[KICKED]', reason)
+  })
 })() // Close async IIFE
