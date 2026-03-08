@@ -20,8 +20,22 @@ get_latest_version() {
 
 # Get current installed version
 get_current_version() {
-  if [ -f "./clawcraft" ]; then
-    ./clawcraft version 2>/dev/null || echo "unknown"
+  if [ -f "${HOME}/.openclaw/bin/clawcraft" ]; then
+    # Try to get version, suppress all output and errors
+    RESULT=$(timeout 2 "${HOME}/.openclaw/bin/clawcraft" version 2>/dev/null)
+    if [ -n "$RESULT" ]; then
+      echo "$RESULT"
+    else
+      echo "unknown"
+    fi
+  elif [ -f "./clawcraft" ]; then
+    # Try to get version, suppress all output and errors
+    RESULT=$(timeout 2 ./clawcraft version 2>/dev/null)
+    if [ -n "$RESULT" ]; then
+      echo "$RESULT"
+    else
+      echo "unknown"
+    fi
   else
     echo ""
   fi
@@ -68,10 +82,17 @@ if [ "$SHOULD_DOWNLOAD" = true ]; then
     exit 1
   fi
 
-  curl -L -o clawcraft "$URL"
-  chmod +x clawcraft
+  # Create openclaw bin directory
+  mkdir -p "${HOME}/.openclaw/bin"
 
-  echo "Installed: ./clawcraft v$LATEST"
+  # Download to openclaw bin directory
+  curl -L -o "${HOME}/.openclaw/bin/clawcraft" "$URL"
+  chmod +x "${HOME}/.openclaw/bin/clawcraft"
+
+  # Also create a symlink in the repo for convenience
+  ln -sf "${HOME}/.openclaw/bin/clawcraft" ./clawcraft 2>/dev/null || true
+
+  echo "Installed: ~/.openclaw/bin/clawcraft v$LATEST"
 fi
 echo ""
 
