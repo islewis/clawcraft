@@ -5,3 +5,9 @@ tasks:
     desc: Connect to a Minecraft server and get REPL prompt
     cmds:
       - sh scripts/join-server.sh {{.CLI_ARGS}}
+
+  deploy-skill:
+    desc: Copy SKILL/ folder to ~/.openclaw/skills/minecraft/
+    cmds:
+      - rm -rf ~/.openclaw/skills/minecraft/
+      - cp -r SKILL ~/.openclaw/skills/minecraft/

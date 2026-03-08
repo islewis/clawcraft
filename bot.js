@@ -92,6 +92,7 @@ bot.on('spawn', () => {
 
   // Global stop flag for interrupting operations
   let stopFlag = false
+  let currentAbortController = null
 
   // Stop command
   r.context.stop = () => {

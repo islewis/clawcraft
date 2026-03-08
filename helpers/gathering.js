@@ -7,7 +7,7 @@ function findAndEquipTool(bot, blockId) {
   for (const toolId of block.harvestTools) {
     const toolItem = bot.inventory.items().find(item => item.type === toolId)
     if (toolItem) {
-      bot.inventory.equipItem(toolItem)
+      bot.equip(toolItem)
       return true
     }
   }
@@ -106,7 +106,7 @@ async function mineNearby(bot, blockName, count = 5, useTools = true, signal) {
   console.log(`Done! Broken ${mined} | Collected ${totalCollected}`)
 }
 
-async function clearArea(bot, x1, y1, z1, x2, y2, z2, blockNames, useTools = true, signal) {
+async function clearArea(bot, x1, y1, z1, x2, y2, z2, blockNames, useTools = true, quiet = false, signal) {
   const mcData = require('minecraft-data')(bot.version)
   const { goals } = require('mineflayer-pathfinder')
   const Vec3 = require('vec3')

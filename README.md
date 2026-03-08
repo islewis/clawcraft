@@ -33,6 +33,13 @@ cd clawcraft
 npm install
 ```
 
+3. Deploy the Minecraft skill to the local OpenClaw skills directory:
+```bash
+task deploy-skill
+```
+
+This copies the skill definitions to `~/.openclaw/skills/minecraft/` for integration with OpenClaw.
+
 ## Usage
 
 ### Standalone Executable
@@ -41,21 +48,26 @@ npm install
 ./clawcraft <host> <port> <username> <auth> [password]
 ```
 
-Example connecting to local server:
+**For a live server with Microsoft account** (replace `[your-username]` with your Minecraft username):
 ```bash
-./clawcraft localhost 25565 MyBot offline
+./clawcraft play.clawcraft.sh 25565 [your-username] microsoft
 ```
 
-Example with Microsoft authentication:
+**For a local server (offline mode)** (replace `[your-username]` with your Minecraft username):
 ```bash
-./clawcraft example.com 25565 MyBot microsoft
+./clawcraft localhost 25565 [your-username] offline
 ```
 
 ### From Source
 
-Connect to local server:
+**For a live server with Microsoft account** (replace `[your-username]` with your Minecraft username):
 ```bash
-npm start localhost 25565 MyBot offline
+npm start play.clawcraft.sh 25565 [your-username] microsoft
+```
+
+**For a local server (offline mode)** (replace `[your-username]` with your Minecraft username):
+```bash
+npm start localhost 25565 [your-username] offline
 ```
 
 Or with custom server settings:
