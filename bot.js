@@ -5,11 +5,27 @@ const { pathfinder, Movements, goals } = require('mineflayer-pathfinder')
 const { Authflow } = require('prismarine-auth')
 const helpers = require('./helpers')
 
-const host = process.argv[2] || 'localhost'
-const port = parseInt(process.argv[3]) || 43663
-const username = process.argv[4] || 'Bot'
-const auth = process.argv[5] || 'offline'  // 'offline', 'microsoft', 'mojang'
-const password = process.argv[6]  // Only needed for mojang auth
+// Parse command line arguments
+function parseArgs() {
+  const args = {}
+  for (let i = 2; i < process.argv.length; i++) {
+    const arg = process.argv[i]
+    if (arg.startsWith('--')) {
+      const [key, val] = arg.slice(2).split('=')
+      args[key] = val || process.argv[++i]
+    } else if (arg.startsWith('-')) {
+      const key = arg.slice(1)
+      args[key] = process.argv[++i]
+    }
+  }
+  return args
+}
+
+const args = parseArgs()
+const host = args.h || args.host || 'localhost'
+const port = parseInt(args.p || args.port || '25565')
+const username = args.u || args.username || 'Bot'
+const auth = args.a || args.auth || 'microsoft'
 
 console.log('=== Bot Configuration ===')
 console.log(`Host: ${host}`)
@@ -30,7 +46,7 @@ const botOptions = {
   // Add auth based on type
   if (auth === 'microsoft') {
     try {
-      console.log('Using Microsoft authentication (prismarine-auth)')
+      console.log('Using Microsoft authentication')
       console.log('[AUTH] Getting Minecraft token...')
       const authflow = new Authflow(username, './.minecraft-auth')
       const { token } = await authflow.getMinecraftJavaToken({ fetchProfile: true })
@@ -41,16 +57,11 @@ const botOptions = {
       console.error('[AUTH ERROR]', e.message)
       process.exit(1)
     }
-  } else if (auth === 'mojang') {
-    if (!password) {
-      console.error('\n[ERROR] Mojang auth requires a password!')
-      console.error('Usage: npm start <host> <port> <email> mojang <password>')
-      process.exit(1)
-    }
-    botOptions.password = password
-    console.log('Using Mojang authentication (legacy)')
-  } else {
+  } else if (auth === 'offline') {
     console.log('Using offline mode (no authentication)')
+  } else {
+    console.error(`[ERROR] Unknown auth type: ${auth}. Use 'microsoft' or 'offline'`)
+    process.exit(1)
   }
 
   const bot = mineflayer.createBot(botOptions)
@@ -109,7 +120,11 @@ bot.on('spawn', () => {
           return stopFlag
         }
       }
-      return fn(bot, ...args, wrappedSignal)
+      // If first arg is an object, pass it directly; otherwise create object from args
+      const params = args.length === 1 && typeof args[0] === 'object' && !Array.isArray(args[0])
+        ? args[0]
+        : { _args: args }
+      return fn(bot, params, wrappedSignal)
     }
   }
 

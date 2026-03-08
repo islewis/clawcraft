@@ -3,7 +3,6 @@ function findAndEquipTool(bot, blockId) {
   const block = mcData.blocks[blockId]
   if (!block || !block.harvestTools) return
 
-  // Find matching tool in inventory
   for (const toolId of block.harvestTools) {
     const toolItem = bot.inventory.items().find(item => item.type === toolId)
     if (toolItem) {
@@ -14,7 +13,7 @@ function findAndEquipTool(bot, blockId) {
   return false
 }
 
-async function mineNearby(bot, blockName, count = 5, useTools = true, signal) {
+async function mineNearby(bot, { blockName, count = 5, useTools = true }, signal) {
   const mcData = require('minecraft-data')(bot.version)
   const { goals } = require('mineflayer-pathfinder')
   const blockId = mcData.blocksByName[blockName]?.id
@@ -67,7 +66,6 @@ async function mineNearby(bot, blockName, count = 5, useTools = true, signal) {
           await bot.dig(currentBlock)
           mined++
 
-          // Wait briefly for item to be collected
           await new Promise(resolve => setTimeout(resolve, 100))
 
           const currentCollected = getItemCount(blockName) - initialCount
@@ -92,9 +90,7 @@ async function mineNearby(bot, blockName, count = 5, useTools = true, signal) {
               }
             }
           }
-        } catch (e) {
-          // Continue to next block
-        }
+        } catch (e) {}
       }
     } catch (e) {
       console.log(`Failed to reach block: ${e.message}`)
@@ -106,17 +102,15 @@ async function mineNearby(bot, blockName, count = 5, useTools = true, signal) {
   console.log(`Done! Broken ${mined} | Collected ${totalCollected}`)
 }
 
-async function clearArea(bot, x1, y1, z1, x2, y2, z2, blockNames, useTools = true, quiet = false, signal) {
+async function clearArea(bot, { x1, y1, z1, x2, y2, z2, blockNames, useTools = true, quiet = false }, signal) {
   const mcData = require('minecraft-data')(bot.version)
   const { goals } = require('mineflayer-pathfinder')
   const Vec3 = require('vec3')
 
-  // Normalize blockNames to array
   if (typeof blockNames === 'string') {
     blockNames = [blockNames]
   }
 
-  // Get block IDs
   const blockIds = blockNames
     .map(name => mcData.blocksByName[name]?.id)
     .filter(id => id !== undefined)
@@ -126,7 +120,6 @@ async function clearArea(bot, x1, y1, z1, x2, y2, z2, blockNames, useTools = tru
     return
   }
 
-  // Normalize coordinates
   const minX = Math.min(x1, x2)
   const maxX = Math.max(x1, x2)
   const minY = Math.min(y1, y2)
@@ -154,7 +147,6 @@ async function clearArea(bot, x1, y1, z1, x2, y2, z2, blockNames, useTools = tru
             console.log(`\nInterrupted. Broken ${broken} | Collected ${collected}`)
             return
           }
-          // Pathfind to block before digging
           const pathPromise = bot.pathfinder.goto(new goals.GoalBlock(x, y, z))
           await pathPromise
           if (signal?.aborted) {
@@ -173,9 +165,7 @@ async function clearArea(bot, x1, y1, z1, x2, y2, z2, blockNames, useTools = tru
           const currentInventory = bot.inventory.items().length
           collected = currentInventory - initialInventory
           if (!quiet) console.log(`Broken ${broken} | Collected ${collected}`)
-        } catch (e) {
-          // Continue to next block
-        }
+        } catch (e) {}
       }
     }
   }

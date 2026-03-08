@@ -1,107 +1,110 @@
-# Clawcraft - Minecraft Bot
+# Clawcraft
 
-A Minecraft bot built with [Mineflayer](https://github.com/PrismarineJS/mineflayer) for automating tasks and exploring Minecraft servers.
+A Minecraft bot interface designed to be controlled by LLMs and OpenClaw. Built with [Mineflayer](https://github.com/PrismarineJS/mineflayer), Clawcraft connects to any Minecraft server and exposes a simple JavaScript API for automation, exploration, and task execution. The goal is to enable LLMs and AI agents to learn and play Minecraft autonomously.
 
 ## Installation
 
-### Option 1: Standalone Executable (Recommended)
+### Easy Install (Recommended)
 
-Download the latest release for your operating system from [Releases](https://github.com/islewis/clawcraft/releases):
-- **Windows**: `clawcraft.exe`
-- **macOS (Intel)**: `clawcraft-macos`
-- **macOS (Apple Silicon)**: `clawcraft-macos-arm64`
-- **Linux**: `clawcraft-linux`
+One command to download and install:
 
-No Node.js installation required.
-
-### Option 2: From Source
-
-#### Prerequisites
-- [Node.js](https://nodejs.org/) (v14 or higher)
-- npm (comes with Node.js)
-
-#### Setup
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/islewis/clawcraft.git
-cd clawcraft
+bash <(curl -s https://raw.githubusercontent.com/islewis/clawcraft/main/install.sh)
 ```
 
-2. Install dependencies:
+Then run with named arguments:
+
+**Online server (Microsoft account):**
 ```bash
-npm install
+./clawcraft -h play.clawcraft.sh -u yourUsername
 ```
 
-3. Deploy the Minecraft skill to the local OpenClaw skills directory:
+**Local LAN server (offline mode):**
 ```bash
-task deploy-skill
-```
-
-This copies the skill definitions to `~/.openclaw/skills/minecraft/` for integration with OpenClaw.
-
-## Usage
-
-### Standalone Executable
-
-```bash
-./clawcraft <host> <port> <username> <auth> [password]
-```
-
-**For a live server with Microsoft account** (replace `[your-username]` with your Minecraft username):
-```bash
-./clawcraft play.clawcraft.sh 25565 [your-username] microsoft
-```
-
-**For a local server (offline mode)** (replace `[your-username]` with your Minecraft username):
-```bash
-./clawcraft localhost 25565 [your-username] offline
+./clawcraft -h localhost -u botName -a offline
 ```
 
 ### From Source
 
-**For a live server with Microsoft account** (replace `[your-username]` with your Minecraft username):
+Prerequisites: [Node.js](https://nodejs.org/) (v14+)
+
 ```bash
-npm start play.clawcraft.sh 25565 [your-username] microsoft
+git clone https://github.com/islewis/clawcraft.git
+cd clawcraft
+npm install
+npm start -h <host> -u <username> [-a <auth>]
 ```
 
-**For a local server (offline mode)** (replace `[your-username]` with your Minecraft username):
-```bash
-npm start localhost 25565 [your-username] offline
-```
+**Online:** `npm start -h play.clawcraft.sh -u yourname`
 
-Or with custom server settings:
-```bash
-npm start <host> <port> <username> <auth> [password]
-```
+**Local LAN:** `npm start -h localhost -u yourname -a offline`
 
-## Commands
+### Authentication
 
-Once the bot spawns, you'll be in an interactive REPL with access to these commands:
+By default, the bot uses Microsoft authentication. The first time you connect, it will open a browser to log in with your Microsoft account. Your auth token is cached in `.minecraft-auth/` so subsequent logins are instant.
 
-### Server
-- `status()` - Show server info (version, player count, difficulty, gamemode)
+Use `-a offline` for local servers with offline mode enabled (no Microsoft account needed).
 
-### Utility
-- `help()` - Display Mineflayer API reference
-- `recipe(itemName)` - Show crafting recipes for an item
-- `stop()` - Stop the current operation
+## API Overview
 
-### Gathering
-- `mineNearby(blockName, count, useTools)` - Mine nearby blocks
-- `findAndEquipTool(blockId)` - Find and equip the right tool from inventory
-- `clearArea(x1, y1, z1, x2, y2, z2, blockNames, useTools)` - Clear a rectangular area
+Once the bot spawns, you get a JavaScript REPL with access to helper commands and the raw Mineflayer API.
 
-### Direct API
-You also have access to:
+### Core Commands
+
+**Navigation**
+- `walk({x, y, z})` - Pathfind to coordinates
+- `look({yaw, pitch})` - Look in direction
+
+**Building**
+- `place({x, y, z, block, walk})` - Place block
+- `placeBlocks({blocks})` - Place multiple blocks
+
+**Gathering**
+- `dig({x, y, z, useTools})` - Mine block
+- `mineNearby({block, count, useTools})` - Mine nearby blocks
+- `clearArea({x1, y1, z1, x2, y2, z2, blocks, useTools})` - Clear region
+
+**Inventory & Info**
+- `getInventory()` - List items
+- `getBlock({x, y, z, verbose})` - Block info
+- `equip({item})` - Equip item
+- `recipe({item})` - Show crafting recipe
+
+**Communication**
+- `chat({message})` - Send chat message
+- `status()` - Server info
+
+**Help**
+- `help()` - List all commands
+- `help({command: 'place'})` - Command details
+
+### Raw API
+
+Full Mineflayer API available:
 - `bot` - Mineflayer bot instance
-- `Vec3` - Vector3 math utilities
+- `Vec3` - Vector math
 - `goals` - Pathfinding goals
-- `Movements` - Movement configuration
+- `Movements` - Movement config
 
-## Authentication
+## Examples
 
-The bot supports three authentication modes:
-- **offline** - No authentication (default)
-- **microsoft** - Microsoft/Xbox Live account (tokens cached in `.minecraft-auth/`)
-- **mojang** - Legacy Mojang account (requires password)
+```javascript
+// Navigate and build
+walk({x: 100, y: 64, z: 200})
+place({x: 100, y: 64, z: 200, block: 'oak_planks'})
+
+// Gather resources
+mineNearby({block: 'oak_log', count: 10})
+clearArea({x1: 0, y1: 60, z1: 0, x2: 10, y2: 65, z2: 10, blocks: 'dirt'})
+
+// Chat with other players
+chat({message: 'Hello!'})
+
+// Check server status
+status()
+```
+
+## Resources
+
+- [Mineflayer Documentation](https://github.com/PrismarineJS/mineflayer#documentation)
+- [OpenClaw Integration](./SKILL/)

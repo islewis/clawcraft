@@ -1,4 +1,4 @@
-function status(bot) {
+function status(bot, params) {
   const players = Object.keys(bot.players).length
   const difficulty = bot.game.difficulty
   const gamemode = bot.game.gamemode

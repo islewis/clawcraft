@@ -9,3 +9,4 @@ node_modules/
 *.swo
 stop.signal
 .minecraft-auth/
+clawcraft

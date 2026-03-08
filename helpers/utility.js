@@ -1,10 +1,11 @@
 const registry = require('./registry')
 
-function help(bot, commandName) {
+function help(bot, params = {}) {
+  const { commandName } = params
+
   if (typeof commandName === 'string') {
     const entry = registry[commandName]
     if (entry) {
-      // Show custom command from registry
       const lines = [`\n${commandName} — ${entry.description}`]
       if (entry.params.length > 0) {
         lines.push('Params:')
@@ -49,13 +50,9 @@ function help(bot, commandName) {
             } else if (type !== 'object') {
               members.push({ name: fullKey, type: type })
             }
-          } catch (e) {
-            // Skip inaccessible properties
-          }
+          } catch (e) {}
         })
-      } catch (e) {
-        // Skip if enumeration fails
-      }
+      } catch (e) {}
 
       return members
     }
@@ -84,7 +81,7 @@ function help(bot, commandName) {
   }
 }
 
-function recipe(bot, itemName) {
+function recipe(bot, { itemName }) {
   const mcData = require('minecraft-data')(bot.version)
   const item = mcData.itemsByName[itemName]
 
@@ -135,7 +132,7 @@ function recipe(bot, itemName) {
   })
 }
 
-async function walk(bot, x, y, z, signal) {
+async function walk(bot, { x, y, z }, signal) {
   const { goals } = require('mineflayer-pathfinder')
   const Vec3 = require('vec3')
 
@@ -147,12 +144,12 @@ async function walk(bot, x, y, z, signal) {
   }
 }
 
-function look(bot, yaw, pitch) {
+function look(bot, { yaw, pitch }) {
   bot.look(yaw, pitch)
   console.log(`Looking at yaw=${yaw}, pitch=${pitch}`)
 }
 
-function getInventory(bot) {
+function getInventory(bot, params) {
   const items = bot.inventory.items()
   if (items.length === 0) {
     console.log('Inventory is empty')
@@ -164,7 +161,7 @@ function getInventory(bot) {
   })
 }
 
-function getBlock(bot, x, y, z, verbose = false) {
+function getBlock(bot, { x, y, z, verbose = false }) {
   const Vec3 = require('vec3')
   const block = bot.blockAt(new Vec3(x, y, z))
   if (!block) {
@@ -190,7 +187,7 @@ function getBlock(bot, x, y, z, verbose = false) {
   return block
 }
 
-function equip(bot, itemName) {
+function equip(bot, { itemName }) {
   const item = bot.inventory.items().find(i => i.name === itemName)
   if (!item) {
     console.log(`${itemName} not found in inventory`)
@@ -201,11 +198,11 @@ function equip(bot, itemName) {
   return true
 }
 
-function chat(bot, message) {
+function chat(bot, { message }) {
   bot.chat(message)
 }
 
-async function dig(bot, x, y, z, useTools = true, signal) {
+async function dig(bot, { x, y, z, useTools = true }, signal) {
   const Vec3 = require('vec3')
   const block = bot.blockAt(new Vec3(x, y, z))
 
@@ -220,7 +217,6 @@ async function dig(bot, x, y, z, useTools = true, signal) {
   }
 
   try {
-    // Check if block is reachable without pathfinding (within 5 blocks)
     const botPos = bot.entity.position
     const distance = botPos.distanceTo(new Vec3(x + 0.5, y + 0.5, z + 0.5))
 
